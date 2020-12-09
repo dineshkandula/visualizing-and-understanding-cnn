@@ -21,8 +21,16 @@ def un_activation(layer, data):
 
     Data is expected to have the sample co-ordinate.
     '''
-    activation = layer.activation
-    return activation(data)
+    inv_model = keras.Sequential(
+        [
+            keras.Input(shape = data.shape),
+            layers.Activation('relu')
+        ]
+    )
+
+    func = dget_function(inv_model.input, inv_model.output)
+    output = func(data)
+    return output
 
 def un_max_pooling(model, layer_name, data, switch):
     '''
@@ -116,7 +124,9 @@ def un_filter(data, model, layer_name):
 
     # dset_weights(inv_model, 0, W, B)
     inp = np.expand_dims(data, axis=0)
-    output = inv_model.predict(inp)
+
+    func = dget_function(inv_model.input, inv_model.output)
+    output = func(inp)
     return output
 
 def un_dense(data, model, layer_name):
@@ -136,7 +146,8 @@ def un_dense(data, model, layer_name):
         ]
     )
 
-    output = inv_model.predict(data)
+    func = dget_function(inv_model.input, inv_model.output)
+    output = func(data)
     return output
 
 def un_flatten(data, model, layer_name):
