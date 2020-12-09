@@ -11,7 +11,7 @@ from dlogging import dlogger
 
 from dmodel import *
 
-from visualize_cnn import un_activation, un_max_pooling, unFilter, get_switch
+from visualize_cnn import un_activation, un_max_pooling, un_filter, get_switch
 
 LOGGING_ENABLED = True
 dlog = dlogger("VISUALIZE_CNN_TC", dlogging.DEBUG, LOGGING_ENABLED)
@@ -72,7 +72,7 @@ def un_filter_test():
     processed_image = vgg16.preprocess_input(image_batch)
     pred = inter_model.predict(processed_image)
     pred = np.squeeze(pred)
-    output = unFilter(pred, inter_model, 'block3_conv3')
+    output = un_filter(pred, inter_model, 'block3_conv3')
     dlog.debug(output)
 
 un_activation_test()

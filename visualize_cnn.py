@@ -80,9 +80,9 @@ def get_switch(data, pool_size):
 
     return output
 
-def unFilter(data, model, layer_name):
+def un_filter(data, model, layer_name):
     '''
-    unFilter(data, model, layer_name)
+    un_filter(data, model, layer_name)
 
     Returns the output obtained by applying inverted filtering operation on
     the feature map.
@@ -119,7 +119,59 @@ def unFilter(data, model, layer_name):
     output = inv_model.predict(inp)
     return output
 
-def get_feature_for_visualization(output, feature, mode='all'):
+def un_dense(data, model, layer_name):
+    W = dget_weights(model, layer_name)[0]
+    W = W.transpose()
+
+    b = np.zeros(W.shape[1])
+
+    dlog.debug(W.shape)
+    dlog.debug(b.shape)
+
+    inv_model = keras.Sequential(
+        [
+            keras.Input(shape = data.shape[1:]),
+            layers.Dense(W.shape[1], kernel_initializer=tf.constant_initializer(W),
+                    bias_initializer=tf.constant_initializer(b))
+        ]
+    )
+
+    output = inv_model.predict(data)
+    return output
+
+def un_flatten(data, model, layer_name):
+    out_shape = dget_layer(model, layer_name).input_shape
+    dlog.debug(out_shape)
+    dlog.debug(data.shape)
+
+    data = data[0]
+
+    ret = np.reshape(data, out_shape[1:])
+    ret = np.expand_dims(ret, axis=0)
+
+    return ret
+
+def get_feature_for_visualization_dense(output, feature=None):
+    '''
+    If feature is given, then that feature is returned.
+    If feature is None, then max feature is returned.
+    '''
+
+    dlog.debug(output.shape)
+
+    pos = None
+    if feature == None:
+        pos = dget_max_location_2d(output)[1]
+    else:
+        pos = feature
+
+    dlog.debug(pos)
+    feature_map = np.zeros_like(output)
+    feature_map[0, pos] = output[0, pos]
+
+    return feature_map
+
+def get_feature_for_visualization_conv2d(output, feature, mode='all'):
     feature_map = None
     if mode == 'all':
         feature_map = output[:,:, :, feature]
@@ -134,7 +186,7 @@ def get_feature_for_visualization(output, feature, mode='all'):
     ret[:, :, :, feature] = feature_map
     return ret
 
-def deconv_feature(img, model, layer_name, feature, mode='all'):
+def deconv_feature(img, model, layer_name, feature=None, mode='all'):
     input = model.input
     outputs = [layer.output for layer in model.layers]
     func = dget_function([input], outputs)
@@ -144,7 +196,14 @@ def deconv_feature(img, model, layer_name, feature, mode='all'):
     layer_idx = dget_layer_index_from_name(model, layer_name)
     dlog.debug(layer_idx, flag=True)
 
-    curr_output = get_feature_for_visualization(output_list[layer_idx], feature, mode)
+    layer = dget_layer(model, layer_name)
+    if dis_layer_dense(layer):
+        curr_output = get_feature_for_visualization_dense(output_list[layer_idx], feature)
+    elif dis_layer_conv2d(layer):
+        assert(feature != None)
+        curr_output = get_feature_for_visualization_conv2d(output_list[layer_idx], feature, mode)
+    else:
+        sys.exit()
 
     while layer_idx>0:
         dlog.debug("layer idx: {}", layer_idx, flag=True)
@@ -156,15 +215,18 @@ def deconv_feature(img, model, layer_name, feature, mode='all'):
             if curr_layer.get_config().get('activation') == 'relu':
                 curr_output = un_activation(curr_layer, curr_output)
 
-            curr_output = unFilter(curr_output[0, :, :, :], model, curr_layer.name)
+            curr_output = un_filter(curr_output[0, :, :, :], model, curr_layer.name)
         elif dis_layer_maxpooling2d(curr_layer):
             data = output_list[layer_idx-1]
             switch = get_switch(data, curr_layer.pool_size)    
             curr_output = un_max_pooling(model, curr_layer.name, curr_output, switch)
         elif dis_layer_flatten(curr_layer):
-            pass
+            curr_output = un_flatten(curr_output, model, curr_layer.name)
         elif  dis_layer_dense(curr_layer):
-            pass
+            if curr_layer.get_config().get('activation') == 'relu':
+                curr_output = un_activation(curr_layer, curr_output)
+
+            curr_output = un_dense(curr_output, model, curr_layer.name)
         elif dis_layer_dropout(curr_layer):
             pass
 
@@ -182,11 +244,11 @@ def post_process_visualization(vis):
     img = Image.fromarray(uint8_deconv, 'RGB')
     dlog.imshow(img, flag=True)
 
-def visualize(input, model, layer_name, feature, mode='all'):
+def visualize(input, model, layer_name, feature=None, mode='all'):
     '''
     visualize(img, model, layer_name, feature, mode='all')
 
     Implements deconv net and displays the feature.
     '''
-    img = deconv_feature(input, model, layer_name, feature, mode)
+    img = deconv_feature(input, model, layer_name, feature=feature, mode=mode)
     post_process_visualization(img)
