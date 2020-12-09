@@ -246,20 +246,20 @@ def deconv_feature(img, model, layer_name, feature=None, mode='all'):
     dlog.debug(curr_output.shape, flag=True)
     return curr_output[0, :, :, :]
 
-def post_process_visualization(vis):
+def post_process_visualization(vis, show_vis=True, save=False, path=None):
     dlog.debug(vis.shape, flag=True)
     vis = vis - vis.min()
     vis *= 1.0 / (vis.max() + 1e-8)
 
     uint8_deconv = (vis * 255).astype(np.uint8)
     img = Image.fromarray(uint8_deconv, 'RGB')
-    dlog.imshow(img, flag=True)
+    dlog.imshow(img, flag=show_vis, save=save, path=path)
 
-def visualize(input, model, layer_name, feature=None, mode='all'):
+def visualize(input, model, layer_name, feature=None, mode='all', show_vis=True, save=False, path=None):
     '''
     visualize(img, model, layer_name, feature, mode='all')
 
     Implements deconv net and displays the feature.
     '''
     img = deconv_feature(input, model, layer_name, feature=feature, mode=mode)
-    post_process_visualization(img)
+    post_process_visualization(img, show_vis, save, path)

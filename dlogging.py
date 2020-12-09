@@ -2,7 +2,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import PIL
-
+from PIL import Image
 
 CRITICAL = 50
 FATAL = CRITICAL
@@ -84,16 +84,14 @@ class dlogger:
             else:    
                 self.logger.info(fmt.format(*args))
 
-    def imshow(self, img, flag=False):
+    def imshow(self, img, flag=False, save=False, path=None):
         if self.enabled or flag:
-            self.logger.debug(type(img))
-            if isinstance(img, PIL.Image.Image):
-                self.logger.debug('Image size: %s', img.size)
-            elif isinstance(img, np.ndarray):
-                self.logger.debug('Image size: %s', img.shape)
-                if not isinstance(img.dtype, np.uint8):
-                    img = np.uint8(img)
+            if isinstance(img, np.ndarray):
+                img = img.astype(np.uint8)
+                img = Image.fromarray(img, 'RGB')
 
             plt.imshow(img)
             plt.show()
 
+        if save and path != None:
+            img.save(path)
