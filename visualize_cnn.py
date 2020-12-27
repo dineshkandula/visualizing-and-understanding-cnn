@@ -205,7 +205,7 @@ def deconv_feature(img, model, layer_name, feature=None, mode='all'):
     dlog.debug(len(output_list))
 
     layer_idx = dget_layer_index_from_name(model, layer_name)
-    dlog.debug(layer_idx, flag=True)
+    dlog.debug(layer_idx)
 
     layer = dget_layer(model, layer_name)
     if dis_layer_dense(layer):
@@ -217,12 +217,12 @@ def deconv_feature(img, model, layer_name, feature=None, mode='all'):
         sys.exit()
 
     while layer_idx>0:
-        dlog.debug("layer idx: {}", layer_idx, flag=True)
-        dlog.debug("curr shape: {}", curr_output.shape, flag=True)
+        dlog.debug("layer idx: {}", layer_idx)
+        dlog.debug("curr shape: {}", curr_output.shape)
 
         curr_layer = model.layers[layer_idx]
         if dis_layer_conv2d(curr_layer):
-            dlog.debug("conv2d layer", flag=True)
+            dlog.debug("conv2d layer")
             if curr_layer.get_config().get('activation') == 'relu':
                 curr_output = un_activation(curr_layer, curr_output)
 
@@ -243,11 +243,11 @@ def deconv_feature(img, model, layer_name, feature=None, mode='all'):
 
         layer_idx = layer_idx - 1
 
-    dlog.debug(curr_output.shape, flag=True)
+    dlog.debug(curr_output.shape)
     return curr_output[0, :, :, :]
 
 def post_process_visualization(vis, show_vis=True, save=False, path=None):
-    dlog.debug(vis.shape, flag=True)
+    dlog.debug(vis.shape)
     vis = vis - vis.min()
     vis *= 1.0 / (vis.max() + 1e-8)
 
